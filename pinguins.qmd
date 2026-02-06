@@ -1,0 +1,54 @@
+---
+title: "pinguins_classification"
+author: "Radzhana Rabdanova"
+format: html
+editor: visual
+---
+```{r}
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+
+# Load the dataset
+df <- read.csv("penguin_predictions.csv")
+
+## Step 1: Data Distribution
+# Plotting the distribution of sex
+ggplot(df, aes(x = as.factor(sex))) +
+  geom_bar(fill = "steelblue", color = "black") +
+  labs(title = "Actual Sex Distribution", x = "Sex", y = "Count") +
+  theme_minimal()
+
+## Step 2 & 3: Metric Calculations
+# Function to calculate metrics
+get_metrics <- function(t) {
+  # Create predictions based on threshold t
+  df_temp <- df %>%
+    mutate(pred_class = ifelse(.pred_female > t, 1, 0))
+  
+  # Set labels based on your data format
+  actual_f <- if(is.numeric(df$sex[1])) 1 else "female"
+  actual_m <- if(is.numeric(df$sex[1])) 0 else "male"
+  
+  # Components of Confusion Matrix
+  TP <- sum(df_temp$pred_class == 1 & df_temp$sex == actual_f)
+  TN <- sum(df_temp$pred_class == 0 & df_temp$sex == actual_m)
+  FP <- sum(df_temp$pred_class == 1 & df_temp$sex == actual_m)
+  FN <- sum(df_temp$pred_class == 0 & df_temp$sex == actual_f)
+  
+  # Metrics
+  acc <- (TP + TN) / nrow(df_temp)
+  prec <- ifelse((TP + FP) == 0, 0, TP / (TP + FP))
+  rec <- TP / (TP + FN)
+  
+  return(data.frame(Threshold = t, Accuracy = acc, Precision = prec, Recall = rec))
+}
+
+# Generate final results table
+results <- bind_rows(get_metrics(0.2), get_metrics(0.5), get_metrics(0.8))
+knitr::kable(results, digits = 4)
+```
+#Results
+ “The 0.2 threshold provides the highest Recall, making it ideal for identifying as many female penguins as possible.”
+ “The 0.8 threshold provides the highest Precision, ensuring our predictions are highly reliable when we label a penguin as female.”
